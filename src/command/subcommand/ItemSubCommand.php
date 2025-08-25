@@ -11,7 +11,7 @@ use pocketmine\command\CommandSender;
 use pocketmine\utils\TextFormat;
 
 /**
- * Subcommand for getting a frame creator item
+ * Subcommand for getting animation creation items
  */
 class ItemSubCommand extends SubCommand
 {
@@ -19,7 +19,7 @@ class ItemSubCommand extends SubCommand
     {
         parent::__construct(
             "item",
-            "Get a frame creator item",
+            "Get animation creation items",
             "/blockanimator item",
             0,
             0,
@@ -40,14 +40,24 @@ class ItemSubCommand extends SubCommand
         $customItemManager = CoreAPI::getInstance()->getCustomItemManager();
 
         // Give the frame creator item to the player
-        $success = $customItemManager->giveCustomItem($player, Main::FRAME_CREATOR_ITEM_ID, 1);
+        $successFrameCreator = $customItemManager->giveCustomItem($player, Main::FRAME_CREATOR_ITEM_ID, 1);
 
-        if (!$success) {
-            $sender->sendMessage(TextFormat::RED . "Failed to give you the frame creator item. Your inventory might be full.");
+        if (!$successFrameCreator) {
+            $sender->sendMessage(TextFormat::RED . "Failed to give you the animation items. Your inventory might be full.");
+            return;
+        }
+
+        // Give the undo/redo item to the player
+        $successUndoRedo = $customItemManager->giveCustomItem($player, Main::UNDO_REDO_ITEM_ID, 1);
+
+        if (!$successUndoRedo) {
+            $sender->sendMessage(TextFormat::RED . "Failed to give you the undo/redo item. Your inventory might be full.");
             return;
         }
 
         // Send message to the player
-        $sender->sendMessage(TextFormat::GREEN . "You have received a frame creator item. Use it to record animation frames!");
+        $sender->sendMessage(TextFormat::GREEN . "You have received animation creation items:");
+        $sender->sendMessage(TextFormat::GREEN . "- Frame Creator: Use it to record animation frames");
+        $sender->sendMessage(TextFormat::GREEN . "- Undo/Redo Tool: Left-click to undo, right-click to redo");
     }
 }

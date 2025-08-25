@@ -47,14 +47,17 @@ class AnimationManager {
     public function loadAnimations(): void {
         $animationsDir = $this->plugin->getDataFolder() . $this->plugin->getConfig()->get("storage.animations_dir", "animations");
 
-        // Get all .yml files in the animations directory
-        $files = glob($animationsDir . "/*.yml");
+        // Check for old .yml files and convert them to .json
+        $this->convertYamlToJson($animationsDir);
+
+        // Get all .json files in the animations directory
+        $files = glob($animationsDir . "/*.json");
         if (!is_array($files)) {
             return;
         }
 
         foreach ($files as $file) {
-            $config = new Config($file, Config::YAML);
+            $config = new Config($file, Config::JSON);
             $data = $config->getAll();
 
             // Skip if missing required data
@@ -92,9 +95,9 @@ class AnimationManager {
      */
     public function saveAnimation(Animation $animation): bool {
         $animationsDir = $this->plugin->getDataFolder() . $this->plugin->getConfig()->get("storage.animations_dir", "animations");
-        $file = $animationsDir . "/" . $animation->getName() . ".yml";
+        $file = $animationsDir . "/" . $animation->getName() . ".json";
 
-        $config = new Config($file, Config::YAML);
+        $config = new Config($file, Config::JSON);
         $config->setAll($animation->toArray());
         $config->save();
 
@@ -143,9 +146,15 @@ class AnimationManager {
 
         // Remove from disk
         $animationsDir = $this->plugin->getDataFolder() . $this->plugin->getConfig()->get("storage.animations_dir", "animations");
-        $file = $animationsDir . "/" . $name . ".yml";
+        $file = $animationsDir . "/" . $name . ".json";
         if (file_exists($file)) {
             unlink($file);
+        }
+
+        // Also check for old YAML file (just in case)
+        $yamlFile = $animationsDir . "/" . $name . ".yml";
+        if (file_exists($yamlFile)) {
+            unlink($yamlFile);
         }
 
         return true;
@@ -235,5 +244,43 @@ class AnimationManager {
         $animation->setPlaying(false);
 
         return true;
+    }
+
+    /**
+     * Convert old YAML animation files to JSON format
+     *
+     * @param string $animationsDir
+     */
+    private function convertYamlToJson(string $animationsDir): void {
+        // Get all .yml files in the animations directory
+        $files = glob($animationsDir . "/*.yml");
+        if (!is_array($files) || empty($files)) {
+            return;
+        }
+
+        $this->plugin->getLogger()->info("Found " . count($files) . " old YAML animation files to convert to JSON");
+
+        foreach ($files as $file) {
+            // Load the YAML file
+            $config = new Config($file, Config::YAML);
+            $data = $config->getAll();
+
+            // Skip if missing required data
+            if (!isset($data['name'], $data['world'])) {
+                $this->plugin->getLogger()->warning("Animation file " . basename($file) . " is missing required data, skipping conversion");
+                continue;
+            }
+
+            // Create a new JSON file with the same name
+            $jsonFile = str_replace(".yml", ".json", $file);
+            $jsonConfig = new Config($jsonFile, Config::JSON);
+            $jsonConfig->setAll($data);
+            $jsonConfig->save();
+
+            // Delete the old YAML file
+            unlink($file);
+
+            $this->plugin->getLogger()->info("Converted animation file " . basename($file) . " to JSON format");
+        }
     }
 }

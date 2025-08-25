@@ -7,12 +7,15 @@ namespace JonasWindmann\BlockAnimator;
 use JonasWindmann\BlockAnimator\animation\AnimationManager;
 use JonasWindmann\BlockAnimator\command\BlockAnimatorCommand;
 use JonasWindmann\BlockAnimator\session\AnimationSessionComponent;
+use JonasWindmann\BlockAnimator\task\CreationParticleTask;
 use JonasWindmann\CoreAPI\CoreAPI;
 use JonasWindmann\CoreAPI\item\CustomItemManager;
 use JonasWindmann\CoreAPI\session\SimpleComponentFactory;
+use pocketmine\data\bedrock\block\BlockLegacyMetadata;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\Listener;
+use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerItemUseEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\item\VanillaItems;
@@ -29,6 +32,9 @@ class Main extends PluginBase implements Listener {
 
     /** @var string The ID of the frame creator item */
     public const FRAME_CREATOR_ITEM_ID = "blockanimator:frame_creator";
+
+    /** @var string The ID of the undo/redo item */
+    public const UNDO_REDO_ITEM_ID = "blockanimator:undo_redo";
 
     protected function onLoad(): void {
         self::setInstance($this);
@@ -49,8 +55,9 @@ class Main extends PluginBase implements Listener {
             })
         );
 
-        // Register the frame creator item with CoreAPI
+        // Register the custom items with CoreAPI
         $this->registerFrameCreatorItem();
+        $this->registerUndoRedoItem();
 
         // Register command
         $this->getServer()->getCommandMap()->register("blockanimator", new BlockAnimatorCommand($this));
@@ -60,6 +67,9 @@ class Main extends PluginBase implements Listener {
 
         // Start animations marked as "run on startup"
         $this->startAutoRunAnimations();
+
+        // Start the creation particle task
+        $this->startCreationParticleTask();
 
         $this->getLogger()->info("BlockAnimator has been enabled!");
     }
@@ -91,6 +101,33 @@ class Main extends PluginBase implements Listener {
         $this->getLogger()->debug("Registered frame creator item with CoreAPI");
     }
 
+    /**
+     * Register the undo/redo item with CoreAPI
+     */
+    private function registerUndoRedoItem(): void {
+        $customItemManager = CoreAPI::getInstance()->getCustomItemManager();
+
+        // Check if the item is already registered
+        if ($customItemManager->getCustomItem(self::UNDO_REDO_ITEM_ID) !== null) {
+            return;
+        }
+
+        // Create and register the undo/redo item
+        $customItemManager->createAndRegisterCustomItem(
+            self::UNDO_REDO_ITEM_ID,
+            TextFormat::RESET . TextFormat::GOLD . "Animation Undo/Redo",
+            "tool",
+            VanillaItems::COMPASS(),
+            ["BlockAnimator" => "UndoRedo"],
+            [
+                TextFormat::RESET . TextFormat::YELLOW . "Left-click to undo the last change",
+                TextFormat::RESET . TextFormat::YELLOW . "Right-click to redo the last undone change"
+            ]
+        );
+
+        $this->getLogger()->debug("Registered undo/redo item with CoreAPI");
+    }
+
     protected function onDisable(): void {
         // Save all animations
         foreach ($this->animationManager->getAnimations() as $animation) {
@@ -101,6 +138,17 @@ class Main extends PluginBase implements Listener {
         }
 
         $this->getLogger()->info("BlockAnimator has been disabled!");
+    }
+
+    /**
+     * Start the creation particle task
+     */
+    private function startCreationParticleTask(): void {
+        // Create and schedule the task to run every 10 ticks (0.5 seconds)
+        $this->getScheduler()->scheduleRepeatingTask(
+            new CreationParticleTask($this),
+            10
+        );
     }
 
     /**
@@ -234,7 +282,7 @@ class Main extends PluginBase implements Listener {
     }
 
     /**
-     * Handle item use event for frame creator
+     * Handle item use event for frame creator and undo/redo (right-click)
      *
      * @param PlayerItemUseEvent $event
      */
@@ -243,8 +291,15 @@ class Main extends PluginBase implements Listener {
         $item = $event->getItem();
         $customItemManager = CoreAPI::getInstance()->getCustomItemManager();
 
-        // Check if the item is a frame creator
-        if ($customItemManager->isCustomItem($item) && $customItemManager->getCustomItemId($item) === self::FRAME_CREATOR_ITEM_ID) {
+        // Check if the item is a custom item
+        if (!$customItemManager->isCustomItem($item)) {
+            return;
+        }
+
+        $customItemId = $customItemManager->getCustomItemId($item);
+
+        // Handle frame creator item
+        if ($customItemId === self::FRAME_CREATOR_ITEM_ID) {
             // Cancel the event to prevent normal item use
             $event->cancel();
 
@@ -268,6 +323,36 @@ class Main extends PluginBase implements Listener {
                 $player->sendMessage(TextFormat::GREEN . "Started recording a new animation. Make changes and use this item again to record the next frame.");
             } else {
                 $player->sendMessage(TextFormat::GREEN . "Frame " . $component->getFrameCount() . " recorded. Make changes and use this item again for the next frame, or use /blockanimator complete <name> to finish.");
+            }
+        }
+        // Handle undo/redo item (right-click = redo)
+        else if ($customItemId === self::UNDO_REDO_ITEM_ID) {
+            // Cancel the event to prevent normal item use
+            $event->cancel();
+
+            // Get the player's session from CoreAPI
+            $session = CoreAPI::getInstance()->getSessionManager()->getSessionByPlayer($player);
+            if ($session === null) {
+                return;
+            }
+
+            // Get the animation component
+            $component = $session->getComponent("blockanimator:animation");
+            if ($component === null || !$component instanceof AnimationSessionComponent) {
+                return;
+            }
+
+            // Check if recording is active
+            if (!$component->isRecording()) {
+                $player->sendMessage(TextFormat::RED . "You are not currently recording an animation.");
+                return;
+            }
+
+            // Attempt to redo the last undone change
+            if ($component->redo()) {
+                $player->sendMessage(TextFormat::GREEN . "Successfully redid the last undone change.");
+            } else {
+                $player->sendMessage(TextFormat::RED . "Nothing to redo.");
             }
         }
     }

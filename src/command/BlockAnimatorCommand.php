@@ -10,8 +10,10 @@ use JonasWindmann\BlockAnimator\command\subcommand\DeleteSubCommand;
 use JonasWindmann\BlockAnimator\command\subcommand\FrameSubCommand;
 use JonasWindmann\BlockAnimator\command\subcommand\ItemSubCommand;
 use JonasWindmann\BlockAnimator\command\subcommand\ListSubCommand;
+use JonasWindmann\BlockAnimator\command\subcommand\RedoSubCommand;
 use JonasWindmann\BlockAnimator\command\subcommand\StartSubCommand;
 use JonasWindmann\BlockAnimator\command\subcommand\StopSubCommand;
+use JonasWindmann\BlockAnimator\command\subcommand\UndoSubCommand;
 use JonasWindmann\BlockAnimator\Main;
 use JonasWindmann\CoreAPI\command\BaseCommand;
 
@@ -47,7 +49,9 @@ class BlockAnimatorCommand extends BaseCommand {
             new ListSubCommand(),
             new DeleteSubCommand(),
             new AutorunSubCommand(),
-            new ItemSubCommand()
+            new ItemSubCommand(),
+            new UndoSubCommand(),
+            new RedoSubCommand()
         ]);
     }
 
