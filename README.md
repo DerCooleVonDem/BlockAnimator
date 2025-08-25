@@ -2,6 +2,8 @@
 
 A powerful Minecraft Bedrock plugin for creating and playing block animations in your world.
 
+## This project depends on https://github.com/DerCooleVonDem/CoreAPI
+
 ## Overview
 
 BlockAnimator allows server administrators and builders to create frame-by-frame animations using blocks in the world. These animations can be saved, played back, and even configured to run automatically when the server starts.

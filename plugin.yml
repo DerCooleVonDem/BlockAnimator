@@ -4,6 +4,8 @@ version: 0.0.1
 main: JonasWindmann\BlockAnimator\Main
 api: 5.28.0
 src-namespace-prefix: JonasWindmann\BlockAnimator
+depend:
+  - CoreAPI
 permissions:
   blockanimator.command:
     default: op
