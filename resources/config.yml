@@ -1,0 +1,34 @@
+# BlockAnimator Configuration
+
+# Default playback settings
+playback:
+  # Default ticks between frames (20 ticks = 1 second)
+  default_frame_delay: 10
+  # Maximum number of frames per animation
+  max_frames: 100
+  # Whether to show particles during playback
+  show_particles: true
+  # Whether to play sounds during playback
+  play_sounds: true
+
+# Storage settings
+storage:
+  # Directory to save animations in (relative to plugin_data folder)
+  animations_dir: "animations"
+  # Whether to auto-save animations when created
+  auto_save: true
+
+# Autorun settings
+autorun:
+  # Whether to enable autorun functionality
+  enabled: true
+  # Delay in seconds before starting autorun animations after server start
+  # This allows the server to fully load before animations start
+  startup_delay: 5
+
+# Debug settings
+debug:
+  # Whether to enable debug logging
+  enabled: false
+  # Whether to log frame data (can be verbose)
+  log_frames: false

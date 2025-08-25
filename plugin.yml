@@ -1,0 +1,26 @@
+---
+name: BlockAnimator
+version: 0.0.1
+main: JonasWindmann\BlockAnimator\Main
+api: 5.28.0
+src-namespace-prefix: JonasWindmann\BlockAnimator
+permissions:
+  blockanimator.command:
+    default: op
+    description: Allows using the BlockAnimator commands
+  blockanimator.command.create:
+    default: op
+    description: Allows creating animations
+  blockanimator.command.play:
+    default: op
+    description: Allows playing animations
+  blockanimator.command.delete:
+    default: op
+    description: Allows deleting animations
+  blockanimator.command.item:
+    default: op
+    description: Allows getting the frame creator item
+  blockanimator.command.autorun:
+    default: op
+    description: Allows configuring animations to run on startup
+...
