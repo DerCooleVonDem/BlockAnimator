@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace JonasWindmann\BlockAnimator\command\subcommand;
 
-use JonasWindmann\BlockAnimator\session\SessionManager;
+use JonasWindmann\BlockAnimator\session\AnimationSessionComponent;
 use JonasWindmann\CoreAPI\command\SubCommand;
+use JonasWindmann\CoreAPI\CoreAPI;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use pocketmine\utils\TextFormat;
@@ -36,17 +37,28 @@ class FrameSubCommand extends SubCommand
             return;
         }
 
-        // Get the player's session
-        $session = SessionManager::getInstance()->getSession($player);
+        // Get the player's session from CoreAPI
+        $session = CoreAPI::getInstance()->getSessionManager()->getSessionByPlayer($player);
+        if ($session === null) {
+            $sender->sendMessage(TextFormat::RED . "Failed to get your session. Please try again.");
+            return;
+        }
+
+        // Get the animation component
+        $component = $session->getComponent("blockanimator:animation");
+        if ($component === null || !$component instanceof AnimationSessionComponent) {
+            $sender->sendMessage(TextFormat::RED . "Failed to get animation component. Please try again.");
+            return;
+        }
 
         // Start a new frame
-        $session->startFrame();
+        $component->startFrame();
 
         // If this is the first frame, tell them they're starting a new animation
-        if ($session->getFrameCount() === 0) {
+        if ($component->getFrameCount() === 0) {
             $player->sendMessage(TextFormat::GREEN . "Started recording a new animation. Make changes and use /blockanimator frame again to record the next frame.");
         } else {
-            $player->sendMessage(TextFormat::GREEN . "Frame " . $session->getFrameCount() . " recorded. Make changes and use /blockanimator frame again for the next frame, or use /blockanimator complete <name> to finish.");
+            $player->sendMessage(TextFormat::GREEN . "Frame " . $component->getFrameCount() . " recorded. Make changes and use /blockanimator frame again for the next frame, or use /blockanimator complete <name> to finish.");
         }
     }
 }

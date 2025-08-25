@@ -6,8 +6,9 @@ namespace JonasWindmann\BlockAnimator\command\subcommand;
 
 use JonasWindmann\BlockAnimator\animation\AnimationManager;
 use JonasWindmann\BlockAnimator\Main;
-use JonasWindmann\BlockAnimator\session\SessionManager;
+use JonasWindmann\BlockAnimator\session\AnimationSessionComponent;
 use JonasWindmann\CoreAPI\command\SubCommand;
+use JonasWindmann\CoreAPI\CoreAPI;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
 use pocketmine\utils\TextFormat;
@@ -30,7 +31,7 @@ class CompleteSubCommand extends SubCommand
             1,
             "blockanimator.command.create"
         );
-        
+
         $this->plugin = $plugin;
     }
 
@@ -51,23 +52,34 @@ class CompleteSubCommand extends SubCommand
             return;
         }
 
-        // Get the player's session
-        $session = SessionManager::getInstance()->getSession($player);
+        // Get the player's session from CoreAPI
+        $session = CoreAPI::getInstance()->getSessionManager()->getSessionByPlayer($player);
+        if ($session === null) {
+            $sender->sendMessage(TextFormat::RED . "Failed to get your session. Please try again.");
+            return;
+        }
+
+        // Get the animation component
+        $component = $session->getComponent("blockanimator:animation");
+        if ($component === null || !$component instanceof AnimationSessionComponent) {
+            $sender->sendMessage(TextFormat::RED . "Failed to get animation component. Please try again.");
+            return;
+        }
 
         // Check if they're recording
-        if (!$session->isRecording()) {
+        if (!$component->isRecording()) {
             $sender->sendMessage(TextFormat::RED . "You're not currently recording an animation. Use /blockanimator frame to start.");
             return;
         }
 
         // Check if they have recorded any frames
-        if ($session->getFrameCount() === 0) {
+        if ($component->getFrameCount() === 0) {
             $sender->sendMessage(TextFormat::RED . "You haven't recorded any frames yet. Use /blockanimator frame to record frames.");
             return;
         }
 
         // Complete the recording and get the frames
-        $frames = $session->completeRecording();
+        $frames = $component->completeRecording();
 
         // Get the default frame delay from config
         $frameDelay = $this->plugin->getConfig()->get("playback.default_frame_delay", 10);

@@ -6,9 +6,10 @@ namespace JonasWindmann\BlockAnimator;
 
 use JonasWindmann\BlockAnimator\animation\AnimationManager;
 use JonasWindmann\BlockAnimator\command\BlockAnimatorCommand;
-use JonasWindmann\BlockAnimator\session\SessionManager;
+use JonasWindmann\BlockAnimator\session\AnimationSessionComponent;
 use JonasWindmann\CoreAPI\CoreAPI;
 use JonasWindmann\CoreAPI\item\CustomItemManager;
+use JonasWindmann\CoreAPI\session\SimpleComponentFactory;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\Listener;
@@ -26,9 +27,6 @@ class Main extends PluginBase implements Listener {
     /** @var AnimationManager */
     private AnimationManager $animationManager;
 
-    /** @var SessionManager */
-    private SessionManager $sessionManager;
-
     /** @var string The ID of the frame creator item */
     public const FRAME_CREATOR_ITEM_ID = "blockanimator:frame_creator";
 
@@ -41,8 +39,15 @@ class Main extends PluginBase implements Listener {
         $this->saveDefaultConfig();
 
         // Initialize managers
-        $this->sessionManager = new SessionManager($this);
         $this->animationManager = new AnimationManager($this);
+
+        // Register the animation session component with CoreAPI
+        $sessionManager = CoreAPI::getInstance()->getSessionManager();
+        $sessionManager->registerComponentFactory(
+            SimpleComponentFactory::createFactory("blockanimator:animation", function() {
+                return new AnimationSessionComponent();
+            })
+        );
 
         // Register the frame creator item with CoreAPI
         $this->registerFrameCreatorItem();
@@ -153,8 +158,7 @@ class Main extends PluginBase implements Listener {
      * @param PlayerQuitEvent $event
      */
     public function onPlayerQuit(PlayerQuitEvent $event): void {
-        // Remove the player's session
-        $this->sessionManager->removeSession($event->getPlayer());
+        // CoreAPI's session manager automatically handles session cleanup
     }
 
     /**
@@ -165,11 +169,20 @@ class Main extends PluginBase implements Listener {
     public function onBlockPlace(BlockPlaceEvent $event): void {
         $player = $event->getPlayer();
 
-        // Get the player's session
-        $session = $this->sessionManager->getSession($player);
+        // Get the player's session from CoreAPI
+        $session = CoreAPI::getInstance()->getSessionManager()->getSessionByPlayer($player);
+        if ($session === null) {
+            return;
+        }
+
+        // Get the animation component
+        $component = $session->getComponent("blockanimator:animation");
+        if ($component === null || !$component instanceof AnimationSessionComponent) {
+            return;
+        }
 
         // If they're not recording, we don't need to process anything
-        if (!$session->isRecording()) {
+        if (!$component->isRecording()) {
             return;
         }
 
@@ -188,7 +201,7 @@ class Main extends PluginBase implements Listener {
             $position = new \pocketmine\world\Position($x, $y, $z, $player->getWorld());
 
             // Record the block change
-            $session->recordBlockChange($position, $block);
+            $component->recordBlockChange($position, $block);
         }
     }
 
@@ -201,13 +214,22 @@ class Main extends PluginBase implements Listener {
         $player = $event->getPlayer();
         $block = $event->getBlock();
 
-        // Get the player's session
-        $session = $this->sessionManager->getSession($player);
+        // Get the player's session from CoreAPI
+        $session = CoreAPI::getInstance()->getSessionManager()->getSessionByPlayer($player);
+        if ($session === null) {
+            return;
+        }
+
+        // Get the animation component
+        $component = $session->getComponent("blockanimator:animation");
+        if ($component === null || !$component instanceof AnimationSessionComponent) {
+            return;
+        }
 
         // If they're recording, record the block change (as air)
-        if ($session->isRecording()) {
+        if ($component->isRecording()) {
             // Record the block as air (broken)
-            $session->recordBlockChange($block->getPosition(), \pocketmine\block\VanillaBlocks::AIR());
+            $component->recordBlockChange($block->getPosition(), \pocketmine\block\VanillaBlocks::AIR());
         }
     }
 
@@ -226,17 +248,26 @@ class Main extends PluginBase implements Listener {
             // Cancel the event to prevent normal item use
             $event->cancel();
 
-            // Get the player's session
-            $session = $this->sessionManager->getSession($player);
+            // Get the player's session from CoreAPI
+            $session = CoreAPI::getInstance()->getSessionManager()->getSessionByPlayer($player);
+            if ($session === null) {
+                return;
+            }
+
+            // Get the animation component
+            $component = $session->getComponent("blockanimator:animation");
+            if ($component === null || !$component instanceof AnimationSessionComponent) {
+                return;
+            }
 
             // Start a new frame
-            $session->startFrame();
+            $component->startFrame();
 
             // If this is the first frame, tell them they're starting a new animation
-            if ($session->getFrameCount() === 0) {
+            if ($component->getFrameCount() === 0) {
                 $player->sendMessage(TextFormat::GREEN . "Started recording a new animation. Make changes and use this item again to record the next frame.");
             } else {
-                $player->sendMessage(TextFormat::GREEN . "Frame " . $session->getFrameCount() . " recorded. Make changes and use this item again for the next frame, or use /blockanimator complete <name> to finish.");
+                $player->sendMessage(TextFormat::GREEN . "Frame " . $component->getFrameCount() . " recorded. Make changes and use this item again for the next frame, or use /blockanimator complete <name> to finish.");
             }
         }
     }

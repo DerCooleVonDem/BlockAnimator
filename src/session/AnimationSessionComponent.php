@@ -5,18 +5,15 @@ declare(strict_types=1);
 namespace JonasWindmann\BlockAnimator\session;
 
 use JonasWindmann\BlockAnimator\animation\AnimationFrame;
+use JonasWindmann\CoreAPI\session\BasePlayerSessionComponent;
 use pocketmine\block\Block;
 use pocketmine\math\Vector3;
-use pocketmine\player\Player;
 use pocketmine\world\Position;
 
 /**
- * Manages a player's animation creation session
+ * Session component for managing animation recording
  */
-class PlayerSession {
-    /** @var Player */
-    private Player $player;
-    
+class AnimationSessionComponent extends BasePlayerSessionComponent {
     /** @var bool */
     private bool $isRecording = false;
     
@@ -27,21 +24,25 @@ class PlayerSession {
     private array $currentWorldState = [];
     
     /**
-     * PlayerSession constructor
-     * 
-     * @param Player $player
+     * Get the unique identifier for this component
      */
-    public function __construct(Player $player) {
-        $this->player = $player;
+    public function getId(): string {
+        return "blockanimator:animation";
     }
     
     /**
-     * Get the player
-     * 
-     * @return Player
+     * Called when the component is added to a session
      */
-    public function getPlayer(): Player {
-        return $this->player;
+    public function onCreate(): void {
+        // Nothing to do here
+    }
+    
+    /**
+     * Called when the component is removed from a session
+     */
+    public function onRemove(): void {
+        // Cancel any recording in progress
+        $this->cancelRecording();
     }
     
     /**
