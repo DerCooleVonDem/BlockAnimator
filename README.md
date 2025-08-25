@@ -13,6 +13,7 @@ BlockAnimator allows server administrators and builders to create frame-by-frame
 - **Frame-by-Frame Animation**: Record block changes as frames and play them back as animations
 - **Easy-to-Use Commands**: Simple commands for creating, playing, and managing animations
 - **Frame Creator Item**: Special item for recording frames without commands
+- **Undo/Redo Support**: Easily undo or redo changes during animation creation
 - **Autorun Support**: Configure animations to play automatically on server startup
 - **Customizable Playback**: Adjust animation speed and other playback settings
 
@@ -42,7 +43,13 @@ BlockAnimator allows server administrators and builders to create frame-by-frame
 
 - Delete an animation: `/blockanimator delete <name>`
 - Configure autorun: `/blockanimator autorun <name> <true|false>`
-- Get the frame creator item: `/blockanimator item`
+- Get the special items: `/blockanimator item`
+
+### Using Undo/Redo
+
+During animation creation, you can:
+- Undo the last change: `/blockanimator undo` or left-click with the undo/redo item
+- Redo the last undone change: `/blockanimator redo` or right-click with the undo/redo item
 
 ## Commands
 
@@ -50,12 +57,14 @@ BlockAnimator allows server administrators and builders to create frame-by-frame
 |---------|-------------|------------|
 | `/blockanimator frame` | Record a new animation frame | blockanimator.command.create |
 | `/blockanimator complete <name>` | Complete and save the animation | blockanimator.command.create |
+| `/blockanimator undo` | Undo the last change in the current frame | blockanimator.command.create |
+| `/blockanimator redo` | Redo the last undone change | blockanimator.command.create |
 | `/blockanimator start <name> [speed]` | Start playing an animation | blockanimator.command.play |
 | `/blockanimator stop <name>` | Stop a playing animation | blockanimator.command.play |
 | `/blockanimator list` | List all animations | blockanimator.command |
 | `/blockanimator delete <name>` | Delete an animation | blockanimator.command.delete |
 | `/blockanimator autorun <name> <true|false>` | Set animation to run on server startup | blockanimator.command.autorun |
-| `/blockanimator item` | Get a frame creator item | blockanimator.command.item |
+| `/blockanimator item` | Get frame creator and undo/redo items | blockanimator.command.item |
 
 ## Permissions
 
