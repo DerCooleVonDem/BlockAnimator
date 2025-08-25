@@ -13,7 +13,6 @@ BlockAnimator allows server administrators and builders to create frame-by-frame
 - **Frame Creator Item**: Special item for recording frames without commands
 - **Autorun Support**: Configure animations to play automatically on server startup
 - **Customizable Playback**: Adjust animation speed and other playback settings
-- **Visual Effects**: Optional particles and sounds during animation playback
 
 ## Installation
 
